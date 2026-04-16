@@ -13,7 +13,7 @@ const ROLE_CONFIG = {
     desc: 'Full access to manage election data',
     btnClass: 'bg-violet-600 hover:bg-violet-700',
     activeClass: 'border-violet-300 bg-violet-50 text-violet-700',
-    hint: 'admin@gen.pk / Khan123@#',
+    hint: 'Contact administrator for credentials',
     redirect: '/admin',
   },
   observer: {
@@ -22,7 +22,7 @@ const ROLE_CONFIG = {
     desc: 'Submit results from your polling station',
     btnClass: 'bg-amber-500 hover:bg-amber-600',
     activeClass: 'border-amber-300 bg-amber-50 text-amber-700',
-    hint: 'yasir.shah@gen.pk / any password',
+    hint: 'Contact administrator for credentials',
     redirect: '/observer',
   },
   public: {
