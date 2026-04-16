@@ -13,7 +13,7 @@ const ROLE_CONFIG = {
     desc: 'Full access to manage election data',
     btnClass: 'bg-violet-600 hover:bg-violet-700',
     activeClass: 'border-violet-300 bg-violet-50 text-violet-700',
-    hint: 'admin@gen.pk / any password',
+    hint: 'admin@gen.pk / Khan123@#',
     redirect: '/admin',
   },
   observer: {
