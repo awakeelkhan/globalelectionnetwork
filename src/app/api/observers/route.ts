@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     // Resolve electionId safely - fall back to first available election
     let electionId: string | null = b.electionId ?? null;
     if (!electionId) {
-      const elections = await query('SELECT id FROM elections LIMIT 1');
+      const elections = await query('SELECT id FROM elections LIMIT 1') as {id:string}[];
       electionId = elections[0]?.id ?? null;
     }
 
