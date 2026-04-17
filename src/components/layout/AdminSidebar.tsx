@@ -17,8 +17,9 @@ const LINKS = [
 ];
 
 const CMS_LINKS = [
-  { label: 'Pages',    href: '/admin/pages',    icon: '📄' },
-  { label: 'Settings', href: '/admin/settings', icon: '⚙️' },
+  { label: 'Posts / News', href: '/admin/posts',    icon: '✍️' },
+  { label: 'Pages',        href: '/admin/pages',    icon: '📄' },
+  { label: 'Settings',     href: '/admin/settings', icon: '⚙️' },
 ];
 
 export default function AdminSidebar() {

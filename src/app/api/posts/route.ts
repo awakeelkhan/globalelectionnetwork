@@ -9,12 +9,15 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    let sql = `
-      SELECT * FROM posts 
-      WHERE status = $1
-    `;
-    const params: any[] = [status];
-    let paramCount = 1;
+    let sql = `SELECT * FROM posts WHERE 1=1`;
+    const params: any[] = [];
+    let paramCount = 0;
+
+    if (status !== 'all') {
+      paramCount++;
+      sql += ` AND status = $${paramCount}`;
+      params.push(status);
+    }
 
     if (category) {
       paramCount++;
@@ -22,7 +25,7 @@ export async function GET(req: NextRequest) {
       params.push(category);
     }
 
-    sql += ` ORDER BY published_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
+    sql += ` ORDER BY created_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
     params.push(limit, offset);
 
     const posts = await query(sql, params);
