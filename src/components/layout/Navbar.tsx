@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import type { ElectionConfig } from '@/types';
 
 const NAV_LINKS = [
   { label: 'Dashboard',    href: '/' },
@@ -16,10 +17,28 @@ const NAV_LINKS = [
 export default function Navbar() {
   const pathname = usePathname();
   const router   = useRouter();
-  const { user, logout, isLive, activeElection } = useApp();
+  const { user, logout, isLive, activeElection, allElections, setActiveElection } = useApp();
   const [open, setOpen] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const switcherRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => { logout(); router.push('/login'); };
+
+  // Close switcher on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
+        setSwitcherOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleElectionSwitch = (e: ElectionConfig) => {
+    setActiveElection(e);
+    setSwitcherOpen(false);
+  };
 
   return (
     <nav className="sticky top-0 z-50" style={{ background: 'linear-gradient(135deg, #052e16 0%, #064e3b 60%, #065f46 100%)' }}>
@@ -157,21 +176,56 @@ export default function Navbar() {
           </div>
         )}
       </div>
-      {/* Election context bar — hidden on mobile to avoid cramping */}
-      <div className="relative border-t border-white/10 bg-black/20 hidden sm:block">
+      {/* Election context bar + switcher */}
+      <div className="relative border-t border-white/10 bg-black/20">
         <div className="max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-3 overflow-x-auto scrollbar-none">
-          <span className="text-white/70 font-black text-[11px] whitespace-nowrap shrink-0">
-            {activeElection.flagEmoji} {activeElection.name}
-          </span>
+          {/* Election Switcher */}
+          <div className="relative shrink-0" ref={switcherRef}>
+            <button
+              onClick={() => setSwitcherOpen(v => !v)}
+              className="flex items-center gap-1.5 text-[11px] font-black text-white/80 hover:text-white bg-white/10 hover:bg-white/15 border border-white/15 px-2.5 py-1 rounded-lg transition-all">
+              {activeElection.flagEmoji} {activeElection.name}
+              <svg className={`w-3 h-3 ml-0.5 transition-transform ${switcherOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+            {switcherOpen && allElections.length > 0 && (
+              <div className="absolute top-full left-0 mt-1.5 z-50 bg-slate-900 border border-white/15 rounded-xl shadow-2xl min-w-[240px] overflow-hidden">
+                <div className="px-3 py-2 border-b border-white/10">
+                  <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Switch Election</p>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {allElections.map(e => (
+                    <button key={e.id} onClick={() => handleElectionSwitch(e)}
+                      className={`w-full text-left px-3 py-2.5 flex items-center gap-2.5 hover:bg-white/10 transition-colors ${
+                        e.id === activeElection.id ? 'bg-white/10' : ''
+                      }`}>
+                      <span className="text-base shrink-0">{e.flagEmoji}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white text-xs font-bold truncate">{e.name}</p>
+                        <p className="text-white/40 text-[10px] truncate">{e.country} · {e.electionType}</p>
+                      </div>
+                      <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 ${
+                        e.status === 'live'     ? 'text-red-300 bg-red-500/25' :
+                        e.status === 'upcoming' ? 'text-amber-300 bg-amber-500/25' :
+                        'text-slate-400 bg-slate-600/30'
+                      }`}>{e.status}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <span className="w-1 h-1 rounded-full bg-white/20 shrink-0" />
           <div className="flex items-center gap-3 text-[10px] text-white/40 font-semibold uppercase tracking-wider whitespace-nowrap flex-1">
-            <span className="shrink-0">🌍 {activeElection.country}</span>
-            <span className="w-1 h-1 rounded-full bg-white/20 shrink-0" />
-            <span className="shrink-0">📍 {activeElection.province}</span>
-            <span className="w-1 h-1 rounded-full bg-white/20 shrink-0" />
+            <span className="shrink-0 hidden sm:inline">🌍 {activeElection.country}</span>
+            <span className="w-1 h-1 rounded-full bg-white/20 shrink-0 hidden sm:inline-block" />
+            <span className="shrink-0 hidden sm:inline">📍 {activeElection.province}</span>
+            <span className="w-1 h-1 rounded-full bg-white/20 shrink-0 hidden sm:inline-block" />
             <span className="shrink-0">🗓️ {activeElection.date}</span>
             <span className="w-1 h-1 rounded-full bg-white/20 shrink-0" />
-            <span className="shrink-0">🏛️ {activeElection.totalSeats} Seats</span>
+            <span className="shrink-0 hidden sm:inline">🏛️ {activeElection.totalSeats} Seats</span>
           </div>
           <span className={`text-[10px] font-black uppercase tracking-wider shrink-0 px-2.5 py-1 rounded-full leading-none ${
             activeElection.status === 'live'     ? 'text-red-300 bg-red-500/20' :
@@ -182,17 +236,6 @@ export default function Navbar() {
             {activeElection.status}
           </span>
         </div>
-      </div>
-      {/* Mobile election badge — single compact line */}
-      <div className="sm:hidden border-t border-white/10 bg-black/20 px-4 py-1.5 flex items-center justify-between gap-2">
-        <span className="text-white/60 text-[11px] font-bold truncate">
-          {activeElection.flagEmoji} {activeElection.name}
-        </span>
-        <span className={`text-[10px] font-black uppercase tracking-wider shrink-0 px-2 py-0.5 rounded-full leading-none ${
-          activeElection.status === 'live'     ? 'text-red-300 bg-red-500/20' :
-          activeElection.status === 'upcoming' ? 'text-amber-300 bg-amber-500/20' :
-          'text-slate-400 bg-slate-500/20'
-        }`}>{activeElection.status}</span>
       </div>
     </nav>
   );
