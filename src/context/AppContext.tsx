@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ELECTIONS } from '@/lib/mockData';
-import type { Candidate, LiveUpdate, User, ElectionConfig } from '@/types';
+import type { Candidate, LiveUpdate, User, ElectionConfig, ElectionType } from '@/types';
 
 interface AppState {
   candidates: Candidate[];
@@ -28,7 +28,7 @@ function dbRowToConfig(e: Record<string, unknown>): ElectionConfig {
     id: e.id as string,
     name: e.name as string,
     country: e.country as string,
-    electionType: (e.election_type ?? e.electionType) as string,
+    electionType: (e.election_type ?? e.electionType) as ElectionType,
     region: e.region as string,
     province: e.province as string,
     date: e.date as string,
