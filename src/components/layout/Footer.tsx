@@ -110,11 +110,9 @@ export default function Footer() {
         <div className="border-t border-white/10 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-white/30 text-xs text-center sm:text-left">{copyright}</p>
           <div className="flex items-center gap-4 text-xs text-white/30">
-            <Link href="/about" className="hover:text-white/60 transition-colors">About</Link>
-            <span>·</span>
             <Link href="/observer" className="hover:text-white/60 transition-colors">Observers</Link>
             <span>·</span>
-            <Link href="/login" className="hover:text-white/60 transition-colors">Admin</Link>
+            <Link href="/login" className="hover:text-white/60 transition-colors">Admin Login</Link>
           </div>
         </div>
       </div>

@@ -38,11 +38,13 @@ export async function POST(req: NextRequest) {
     const [row] = await query(`
       INSERT INTO result_entries
         (candidate_id, candidate_name, party_id, polling_station_id, polling_station_name,
-         constituency_id, election_id, votes, submitted_by, submitted_at, observer_id)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *
+         constituency_id, election_id, votes, submitted_by, submitted_at, observer_id,
+         district_name, total_cast_votes, is_winner, is_runner_up)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *
     `, [b.candidateId ?? null, b.candidateName, b.partyId ?? null, b.pollingStationId ?? null,
         b.pollingStationName ?? '', b.constituencyId ?? null, b.electionId,
-        b.votes, b.submittedBy ?? 'admin', b.submittedAt ?? new Date().toISOString(), b.observerId ?? null]);
+        b.votes, b.submittedBy ?? 'admin', b.submittedAt ?? new Date().toISOString(), b.observerId ?? null,
+        b.districtName ?? null, b.totalCastVotes ?? null, b.isWinner ?? false, b.isRunnerUp ?? false]);
 
     if (b.candidateId) {
       await query(

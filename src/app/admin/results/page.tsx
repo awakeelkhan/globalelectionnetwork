@@ -2,19 +2,28 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Check, AlertCircle, Trash2, ShieldCheck, Flag, Plus, X } from 'lucide-react';
+import { Check, AlertCircle, Trash2, ShieldCheck, Flag, Plus, X, Trophy, Medal } from 'lucide-react';
 
 interface Result {
   id: string; candidate_name: string; polling_station_name: string;
   votes: number; submitted_at: string; submitted_by: string;
   verified: boolean; flagged: boolean;
   party_color?: string; party_short?: string;
+  is_winner?: boolean; is_runner_up?: boolean; district_name?: string;
 }
 
-const EMPTY_FORM = {
-  candidate_name: '', candidate_id: '', party_id: '', constituency_id: '',
-  polling_station_name: '', polling_station_number: '',
-  votes: '', date: new Date().toISOString().slice(0,10), time: new Date().toTimeString().slice(0,5),
+interface CandidateEntry {
+  candidateId: string;
+  candidateName: string;
+  partyId: string;
+  votes: string;
+}
+
+const EMPTY_STATION = {
+  districtName: '', pollingStationName: '', pollingStationNumber: '',
+  totalCastVotes: '',
+  date: new Date().toISOString().slice(0,10),
+  time: new Date().toTimeString().slice(0,5),
 };
 
 export default function AdminResultsPage() {
@@ -26,12 +35,13 @@ export default function AdminResultsPage() {
   const [filter, setFilter]   = useState<'all'|'pending'|'verified'|'flagged'>('all');
   const [toast, setToast]     = useState<{msg:string;ok:boolean}|null>(null);
   const [acting, setActing]   = useState<string|null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm]         = useState(EMPTY_FORM);
-  const [saving, setSaving]     = useState(false);
-  const [candidates, setCandidates] = useState<any[]>([]);
+  const [showForm, setShowForm]   = useState(false);
+  const [station, setStation]     = useState(EMPTY_STATION);
+  const [entries, setEntries]     = useState<CandidateEntry[]>([{ candidateId: '', candidateName: '', partyId: '', votes: '' }]);
+  const [saving, setSaving]       = useState(false);
+  const [candidates, setCandidates] = useState<{id:string;name:string;partyId:string;party_short?:string}[]>([]);
 
-  const showToast = (msg: string, ok = true) => { setToast({msg,ok}); setTimeout(()=>setToast(null),3000); };
+  const showToast = (msg: string, ok = true) => { setToast({msg,ok}); setTimeout(()=>setToast(null),4000); };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,33 +60,67 @@ export default function AdminResultsPage() {
     }
   }, [electionId]);
 
+  const resetForm = () => {
+    setStation(EMPTY_STATION);
+    setEntries([{ candidateId: '', candidateName: '', partyId: '', votes: '' }]);
+  };
+
+  const addEntry   = () => setEntries(p => [...p, { candidateId: '', candidateName: '', partyId: '', votes: '' }]);
+  const removeEntry = (i: number) => setEntries(p => p.filter((_, idx) => idx !== i));
+  const updateEntry = (i: number, field: keyof CandidateEntry, val: string) =>
+    setEntries(p => p.map((e, idx) => idx === i ? { ...e, [field]: val } : e));
+
+  const handleCandidateSelect = (i: number, cid: string) => {
+    const c = candidates.find(c => c.id === cid);
+    setEntries(p => p.map((e, idx) => idx === i
+      ? { ...e, candidateId: cid, candidateName: c?.name || '', partyId: c?.partyId || '' }
+      : e));
+  };
+
+  // Auto-determine winner/runner-up from votes
+  const entriesWithRank = entries.map(e => ({ ...e, voteNum: parseInt(e.votes) || 0 }));
+  const sorted = [...entriesWithRank].sort((a, b) => b.voteNum - a.voteNum);
+  const winnerId   = sorted[0]?.candidateName || '';
+  const runnerUpId = sorted[1]?.candidateName || '';
+
   const handleAddResult = async (e: React.FormEvent) => {
     e.preventDefault();
+    const validEntries = entries.filter(e => e.candidateName && e.votes);
+    if (!validEntries.length) return showToast('Add at least one candidate with votes', false);
+    if (!station.pollingStationName) return showToast('Polling Station Name is required', false);
     setSaving(true);
     try {
-      const submittedAt = new Date(`${form.date}T${form.time}`).toISOString();
-      const res = await fetch('/api/results', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          electionId,
-          candidateId: form.candidate_id || null,
-          candidateName: form.candidate_name,
-          partyId: form.party_id || null,
-          constituencyId: form.constituency_id || null,
-          pollingStationName: `${form.polling_station_number ? form.polling_station_number + ' - ' : ''}${form.polling_station_name}`,
-          votes: parseInt(form.votes),
-          submittedAt,
-          submittedBy: 'admin',
-        }),
-      });
-      if (!res.ok) throw new Error('Failed');
-      showToast('Result added successfully');
+      const submittedAt = new Date(`${station.date}T${station.time}`).toISOString();
+      const stationLabel = `${station.pollingStationNumber ? station.pollingStationNumber + ' - ' : ''}${station.pollingStationName}`;
+
+      // Insert one row per candidate
+      await Promise.all(validEntries.map(entry =>
+        fetch('/api/results', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            electionId,
+            candidateId:      entry.candidateId || null,
+            candidateName:    entry.candidateName,
+            partyId:          entry.partyId || null,
+            pollingStationName: stationLabel,
+            districtName:     station.districtName || null,
+            totalCastVotes:   parseInt(station.totalCastVotes) || null,
+            votes:            parseInt(entry.votes),
+            isWinner:         entry.candidateName === winnerId,
+            isRunnerUp:       entry.candidateName === runnerUpId && entry.candidateName !== winnerId,
+            submittedAt,
+            submittedBy: 'admin',
+          }),
+        })
+      ));
+
+      showToast(`${validEntries.length} candidate result(s) saved!`);
       setShowForm(false);
-      setForm(EMPTY_FORM);
+      resetForm();
       load();
     } catch {
-      showToast('Failed to add result', false);
+      showToast('Failed to save results — check console', false);
     } finally {
       setSaving(false);
     }
@@ -152,59 +196,103 @@ export default function AdminResultsPage() {
 
         {/* Add Polling Station Result Form */}
         {showForm && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                <h2 className="font-black text-slate-800">Add Polling Station Result</h2>
-                <button onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }} className="text-slate-400 hover:text-slate-700"><X size={20}/></button>
+                <div>
+                  <h2 className="font-black text-slate-800">Add Polling Station Result</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Enter votes for all candidates at this station</p>
+                </div>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="text-slate-400 hover:text-slate-700"><X size={20}/></button>
               </div>
-              <form onSubmit={handleAddResult} className="px-6 py-5 space-y-4">
+              <form onSubmit={handleAddResult} className="px-6 py-5 space-y-5 max-h-[80vh] overflow-y-auto">
+
+                {/* Station Info */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Candidate</label>
-                  <select value={form.candidate_id} onChange={e => {
-                    const c = candidates.find((c: any) => c.id === e.target.value);
-                    setForm(p => ({ ...p, candidate_id: e.target.value, candidate_name: c?.name || p.candidate_name, party_id: c?.partyId || '', constituency_id: c?.constituencyId || '' }));
-                  }} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400">
-                    <option value="">— Select Candidate —</option>
-                    {candidates.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">📍 Polling Station Info</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">District Name</label>
+                      <input type="text" value={station.districtName} onChange={e => setStation(p => ({ ...p, districtName: e.target.value }))}
+                        placeholder="e.g. Gilgit District" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Total Cast Votes</label>
+                      <input type="number" min="0" value={station.totalCastVotes} onChange={e => setStation(p => ({ ...p, totalCastVotes: e.target.value }))}
+                        placeholder="e.g. 850" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Station Name *</label>
+                      <input type="text" required value={station.pollingStationName} onChange={e => setStation(p => ({ ...p, pollingStationName: e.target.value }))}
+                        placeholder="e.g. Govt Boys High School" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Station Number</label>
+                      <input type="text" value={station.pollingStationNumber} onChange={e => setStation(p => ({ ...p, pollingStationNumber: e.target.value }))}
+                        placeholder="e.g. PS-001" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Date *</label>
+                      <input type="date" required value={station.date} onChange={e => setStation(p => ({ ...p, date: e.target.value }))}
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Time *</label>
+                      <input type="time" required value={station.time} onChange={e => setStation(p => ({ ...p, time: e.target.value }))}
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Candidate Entries */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Candidate Name *</label>
-                  <input type="text" required value={form.candidate_name} onChange={e => setForm(p => ({ ...p, candidate_name: e.target.value }))}
-                    placeholder="Full candidate name" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest">🗳️ Candidate Votes</p>
+                    <button type="button" onClick={addEntry}
+                      className="flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg hover:bg-green-100 transition-colors">
+                      <Plus size={12}/> Add Candidate
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {entries.map((entry, i) => {
+                      const voteNum = parseInt(entry.votes) || 0;
+                      const isWinner   = entry.candidateName && entry.candidateName === winnerId && voteNum > 0;
+                      const isRunnerUp = entry.candidateName && entry.candidateName === runnerUpId && entry.candidateName !== winnerId && voteNum > 0;
+                      return (
+                        <div key={i} className={`flex items-center gap-2 p-3 rounded-xl border ${isWinner ? 'border-amber-300 bg-amber-50' : isRunnerUp ? 'border-slate-300 bg-slate-50' : 'border-slate-200'}`}>
+                          <div className="shrink-0 w-6 text-center">
+                            {isWinner   ? <Trophy size={14} className="text-amber-500 mx-auto"/> :
+                             isRunnerUp ? <Medal  size={14} className="text-slate-400 mx-auto"/> :
+                             <span className="text-xs font-bold text-slate-300">{i+1}</span>}
+                          </div>
+                          <select value={entry.candidateId} onChange={e => handleCandidateSelect(i, e.target.value)}
+                            className="flex-1 border border-slate-200 rounded-lg px-2 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400 min-w-0">
+                            <option value="">— Select or type below —</option>
+                            {candidates.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                          <input type="text" value={entry.candidateName} onChange={e => updateEntry(i, 'candidateName', e.target.value)}
+                            placeholder="Candidate name" className="flex-1 border border-slate-200 rounded-lg px-2 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400 min-w-0"/>
+                          <input type="number" min="0" value={entry.votes} onChange={e => updateEntry(i, 'votes', e.target.value)}
+                            placeholder="Votes" className="w-24 shrink-0 border border-slate-200 rounded-lg px-2 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                          {entries.length > 1 && (
+                            <button type="button" onClick={() => removeEntry(i)} className="shrink-0 text-slate-300 hover:text-red-500 transition-colors">
+                              <X size={14}/>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {sorted[0]?.voteNum > 0 && (
+                    <div className="mt-3 flex items-center gap-4 text-xs text-slate-500 bg-slate-50 rounded-xl px-3 py-2">
+                      <span><Trophy size={11} className="inline text-amber-500 mr-1"/>Winner: <strong className="text-slate-700">{sorted[0]?.candidateName}</strong> ({sorted[0]?.voteNum.toLocaleString()} votes)</span>
+                      {sorted[1]?.voteNum > 0 && <span><Medal size={11} className="inline text-slate-400 mr-1"/>Runner-up: <strong className="text-slate-700">{sorted[1]?.candidateName}</strong> ({sorted[1]?.voteNum.toLocaleString()} votes)</span>}
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Station Name *</label>
-                    <input type="text" required value={form.polling_station_name} onChange={e => setForm(p => ({ ...p, polling_station_name: e.target.value }))}
-                      placeholder="e.g. Govt Boys School" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Station Number</label>
-                    <input type="text" value={form.polling_station_number} onChange={e => setForm(p => ({ ...p, polling_station_number: e.target.value }))}
-                      placeholder="e.g. PS-001" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Date *</label>
-                    <input type="date" required value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Time *</label>
-                    <input type="time" required value={form.time} onChange={e => setForm(p => ({ ...p, time: e.target.value }))}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Votes *</label>
-                    <input type="number" required min="0" value={form.votes} onChange={e => setForm(p => ({ ...p, votes: e.target.value }))}
-                      placeholder="0" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
-                  </div>
-                </div>
+
                 <div className="flex gap-3 justify-end pt-2 border-t border-slate-100">
-                  <button type="button" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }} className="btn-ghost text-sm">Cancel</button>
+                  <button type="button" onClick={() => { setShowForm(false); resetForm(); }} className="btn-ghost text-sm">Cancel</button>
                   <button type="submit" disabled={saving} className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50">
                     {saving ? 'Saving…' : <><Check size={14}/> Save Result</>}
                   </button>

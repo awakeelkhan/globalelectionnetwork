@@ -52,6 +52,8 @@ export default function AdminObserversPage() {
     return matchSearch && matchFilter;
   });
 
+  const [createdCreds, setCreatedCreds] = useState<{name:string;email:string;password:string}|null>(null);
+
   const handleInvite = async () => {
     if (!form.name || !form.email) return showToast('Name and email are required', false);
     setSaving(true);
@@ -61,8 +63,9 @@ export default function AdminObserversPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, electionId }),
       });
-      if (!res.ok) throw new Error((await res.json()).error);
-      showToast('Observer invited!');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setCreatedCreds({ name: form.name, email: form.email, password: data.passwordPlain });
       setShowInvite(false);
       setForm(EMPTY_FORM);
       load();
@@ -382,6 +385,33 @@ export default function AdminObserversPage() {
                   <Trash2 size={14}/> Remove Observer
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Credentials Modal */}
+        {createdCreds && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                  <Check size={20} className="text-green-600"/>
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-800">Observer Invited!</h3>
+                  <p className="text-xs text-slate-500">Credentials have been sent to their email</p>
+                </div>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4 space-y-2 text-sm mb-4">
+                <div className="flex justify-between"><span className="text-slate-500">Name</span><span className="font-semibold text-slate-800">{createdCreds.name}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Email</span><span className="font-semibold text-slate-800">{createdCreds.email}</span></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Password</span>
+                  <code className="font-mono text-xs bg-white border border-slate-200 px-2 py-1 rounded-lg text-slate-800">{createdCreds.password}</code>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 mb-4">⚠️ Save this password — it won&apos;t be shown again.</p>
+              <button onClick={() => setCreatedCreds(null)} className="w-full btn-primary text-sm">Done</button>
             </div>
           </div>
         )}

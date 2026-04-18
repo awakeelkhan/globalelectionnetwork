@@ -9,7 +9,7 @@ const LEADERSHIP = [
   { name: 'Abdul Wakeel',    role: 'Director Digital Transformation', initials: 'AW', color: ['#22c55e', '#16a34a'], desc: 'Leads overall strategic direction and operations of the network.' },
   { name: 'Naveed Ahmed',    role: 'Director of Field Operations', initials: 'NA', color: ['#3b82f6', '#2563eb'], desc: 'Oversees observer deployment and field monitoring activities.' },
   { name: 'Aliya Qaiser',    role: 'Director of Communications',  initials: 'AQ', color: ['#a855f7', '#7c3aed'], desc: 'Manages public outreach, media relations, and stakeholder engagement.' },
-  { name: 'Dr Mukhtar Ahmed', role: 'Director of Research',       initials: 'MA', color: ['#f59e0b', '#d97706'], desc: 'Leads data analysis, research programs, and election integrity studies.' },
+  { name: 'Naeem Ahmed Bajwa', role: 'Director of Research',      initials: 'NB', color: ['#f59e0b', '#d97706'], desc: 'Leads data analysis, research programs, and election integrity studies.' },
 ];
 
 const FOCUS_AREAS = [

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { query } from '@/lib/db';
+import { sendObserverCredentials } from '@/lib/email';
 
 export async function GET(req: NextRequest) {
   try {
@@ -26,17 +27,21 @@ export async function POST(req: NextRequest) {
   try {
     const b = await req.json();
 
-    // Resolve electionId safely - fall back to first available election
+    // Resolve electionId safely
     let electionId: string | null = b.electionId ?? null;
     if (!electionId) {
       const elections = await query('SELECT id FROM elections LIMIT 1') as {id:string}[];
       electionId = elections[0]?.id ?? null;
     }
 
-    // Hash password if provided
-    const passwordHash = b.password
-      ? createHash('sha256').update(b.password).digest('hex')
-      : null;
+    // Auto-generate password if not provided
+    const plainPassword = b.password || Math.random().toString(36).slice(-8) + 'G1!';
+    const passwordHash  = createHash('sha256').update(plainPassword).digest('hex');
+
+    // Fetch election name for email
+    const [election] = electionId
+      ? await query('SELECT name FROM elections WHERE id=$1', [electionId]) as {name:string}[]
+      : [];
 
     const [row] = await query(`
       INSERT INTO observers
@@ -45,9 +50,23 @@ export async function POST(req: NextRequest) {
     `, [
       b.name, b.email, b.phone ?? null, b.cnic ?? null,
       b.pollingStationName ?? null, electionId,
-      b.username ?? null, passwordHash, b.photoUrl ?? null,
+      b.username ?? b.email, passwordHash, b.photoUrl ?? null,
     ]);
-    return NextResponse.json({ observer: row }, { status: 201 });
+
+    // Send credentials email (best-effort, don't fail if SMTP not configured)
+    try {
+      await sendObserverCredentials({
+        name:         b.name,
+        email:        b.email,
+        username:     b.username ?? b.email,
+        password:     plainPassword,
+        electionName: election?.name,
+      });
+    } catch (emailErr) {
+      console.warn('[email] Failed to send credentials:', emailErr);
+    }
+
+    return NextResponse.json({ observer: row, passwordPlain: plainPassword }, { status: 201 });
   } catch (e: unknown) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

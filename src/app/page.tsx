@@ -331,6 +331,59 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Organogram / Leadership Team ── */}
+      <section className="py-14 bg-white border-t border-slate-100">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <span className="text-xs font-black uppercase tracking-widest text-green-600 bg-green-50 px-3 py-1 rounded-full">Our Team</span>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mt-3 mb-2">Leadership & Organogram</h2>
+            <p className="text-slate-500 text-sm max-w-xl mx-auto">The dedicated team behind transparent and credible election monitoring across Pakistan.</p>
+          </div>
+
+          {/* Top — Executive Director */}
+          <div className="flex justify-center mb-6">
+            <div className="relative bg-gradient-to-br from-green-600 to-emerald-700 rounded-2xl p-5 w-60 text-center shadow-lg shadow-green-200">
+              <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-white font-black text-xl mx-auto mb-3">AW</div>
+              <p className="text-white font-black text-sm">Abdul Wakeel</p>
+              <p className="text-green-200 text-[11px] font-semibold mt-0.5">Director Digital Transformation</p>
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-slate-200"/>
+            </div>
+          </div>
+
+          {/* Connector line row */}
+          <div className="flex justify-center mb-2">
+            <div className="w-3/4 h-0.5 bg-slate-200 relative">
+              <div className="absolute left-1/6 top-0 w-0.5 h-4 bg-slate-200"/>
+              <div className="absolute left-1/2 top-0 w-0.5 h-4 bg-slate-200 -translate-x-1/2"/>
+              <div className="absolute right-1/6 top-0 w-0.5 h-4 bg-slate-200"/>
+            </div>
+          </div>
+
+          {/* Directors row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto mt-2">
+            {[
+              { initials: 'NA', name: 'Naveed Ahmed',     role: 'Director of Field Operations', color: 'from-blue-500 to-blue-700',   bg: 'bg-blue-50',  border: 'border-blue-200',  text: 'text-blue-700' },
+              { initials: 'AQ', name: 'Aliya Qaiser',     role: 'Director of Communications',   color: 'from-purple-500 to-purple-700', bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700' },
+              { initials: 'NB', name: 'Naeem Ahmed Bajwa', role: 'Director of Research',         color: 'from-amber-500 to-amber-700',  bg: 'bg-amber-50',  border: 'border-amber-200',  text: 'text-amber-700' },
+            ].map(m => (
+              <div key={m.name} className={`${m.bg} border ${m.border} rounded-2xl p-4 text-center hover:shadow-md transition-shadow`}>
+                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${m.color} flex items-center justify-center text-white font-black text-sm mx-auto mb-2.5 shadow-sm`}>
+                  {m.initials}
+                </div>
+                <p className="font-black text-slate-900 text-sm">{m.name}</p>
+                <p className={`text-[11px] font-semibold mt-0.5 ${m.text}`}>{m.role}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <a href="/about" className="inline-flex items-center gap-2 text-sm font-semibold text-green-700 hover:text-green-800 transition-colors">
+              Learn more about our team →
+            </a>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );
