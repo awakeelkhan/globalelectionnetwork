@@ -193,6 +193,82 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ══════════════════ FEATURED NEWS ══════════════════ */}
+      {news.length > 0 && (
+        <section className="max-w-6xl mx-auto px-4 py-10">
+          <div className="flex items-end justify-between mb-6">
+            <div>
+              <span className="text-xs font-black uppercase tracking-widest text-green-600 bg-green-50 px-3 py-1 rounded-full">Latest Updates</span>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">News & Announcements</h2>
+            </div>
+            <Link href="/news" className="text-sm font-semibold text-green-700 hover:text-green-800 transition-colors hidden sm:block flex items-center gap-1">View all →</Link>
+          </div>
+          
+          {/* Featured news card (first item) */}
+          {news[0] && (
+            <Link href={`/news/${news[0].slug}`} className="group block mb-6">
+              <div className="relative rounded-2xl overflow-hidden shadow-lg shadow-slate-200/50 hover:shadow-xl transition-all duration-300">
+                {news[0].featured_image_url && (
+                  <div className="h-64 sm:h-80 overflow-hidden bg-slate-100">
+                    <img src={news[0].featured_image_url} alt={news[0].title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"/>
+                  </div>
+                )}
+                <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+                  {news[0].category && (
+                    <span className="inline-block px-3 py-1 bg-green-500 text-white text-[11px] font-black uppercase tracking-widest rounded-full mb-3">{news[0].category}</span>
+                  )}
+                  <h3 className="text-white font-black text-xl sm:text-2xl leading-tight mb-2 group-hover:text-green-300 transition-colors line-clamp-2">{news[0].title}</h3>
+                  {news[0].excerpt && (
+                    <p className="text-white/80 text-sm leading-relaxed line-clamp-2 max-w-2xl mb-3">{news[0].excerpt}</p>
+                  )}
+                  <div className="flex items-center gap-3 text-white/60 text-xs">
+                    {news[0].author && <span className="font-semibold text-white/80">{news[0].author}</span>}
+                    <span>·</span>
+                    <span>{new Date(news[0].created_at).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          )}
+
+          {/* Secondary news cards (grid) */}
+          {news.length > 1 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {news.slice(1).map((post: any) => (
+                <Link key={post.id} href={`/news/${post.slug}`}
+                  className="card card-hover overflow-hidden group flex flex-col">
+                  {post.featured_image_url && (
+                    <div className="h-40 overflow-hidden bg-slate-100 relative">
+                      <img src={post.featured_image_url} alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
+                      {post.category && (
+                        <span className="absolute top-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-sm text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-lg">{post.category}</span>
+                      )}
+                    </div>
+                  )}
+                  <div className="p-4 flex-1 flex flex-col">
+                    <h3 className="font-black text-slate-900 text-sm leading-snug mb-2 group-hover:text-green-700 transition-colors line-clamp-2">{post.title}</h3>
+                    {post.excerpt && (
+                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 flex-1">{post.excerpt}</p>
+                    )}
+                    <p className="text-[10px] text-slate-400 mt-3">
+                      {post.author && <span className="font-semibold">{post.author} · </span>}
+                      {new Date(post.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <div className="text-center mt-6 sm:hidden">
+            <Link href="/news" className="text-sm font-semibold text-green-700">View all news →</Link>
+          </div>
+        </section>
+      )}
+
       {/* ══════════════════ SEAT TRACKER ══════════════════ */}
       <section className="max-w-6xl mx-auto px-4 -mt-4 relative z-10">
         <div className="card p-5 sm:p-6">
@@ -336,50 +412,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* ── Latest News ── */}
-      {news.length > 0 && (
-        <section className="py-12 bg-slate-50 border-t border-slate-100">
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="flex items-end justify-between mb-7">
-              <div>
-                <span className="text-xs font-black uppercase tracking-widest text-green-600 bg-green-50 px-3 py-1 rounded-full">Latest</span>
-                <h2 className="text-2xl font-black text-slate-900 mt-2">News & Updates</h2>
-              </div>
-              <Link href="/news" className="text-sm font-semibold text-green-700 hover:text-green-800 transition-colors hidden sm:block">View all →</Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {news.map((post: any) => (
-                <Link key={post.id} href={`/news/${post.slug}`}
-                  className="card card-hover overflow-hidden group flex flex-col">
-                  {post.featured_image_url && (
-                    <div className="h-40 overflow-hidden bg-slate-100">
-                      <img src={post.featured_image_url} alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
-                    </div>
-                  )}
-                  <div className="p-4 flex-1 flex flex-col">
-                    {post.category && (
-                      <span className="text-[10px] font-black uppercase tracking-widest text-green-600 mb-1.5">{post.category}</span>
-                    )}
-                    <h3 className="font-black text-slate-900 text-sm leading-snug mb-2 group-hover:text-green-700 transition-colors line-clamp-2">{post.title}</h3>
-                    {post.excerpt && (
-                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 flex-1">{post.excerpt}</p>
-                    )}
-                    <p className="text-[10px] text-slate-400 mt-3">
-                      {post.author && <span className="font-semibold">{post.author} · </span>}
-                      {new Date(post.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-            <div className="text-center mt-6 sm:hidden">
-              <Link href="/news" className="text-sm font-semibold text-green-700">View all news →</Link>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ── Organogram / Leadership Team ── */}
       <section className="py-14 bg-white border-t border-slate-100">
