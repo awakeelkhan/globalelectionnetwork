@@ -20,6 +20,13 @@ export default function ObserverPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [votes, setVotes] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState({
+    districtName: '',
+    pollingStationName: '',
+    pollingStationNumber: '',
+    totalCastVotes: ''
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   if (!user || user.role !== 'observer') {
     return (
@@ -37,12 +44,47 @@ export default function ObserverPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate mandatory fields
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.districtName.trim()) {
+      newErrors.districtName = 'District/Constituency Name is required';
+    }
+    if (!formData.pollingStationName.trim()) {
+      newErrors.pollingStationName = 'Polling Station Name is required';
+    }
+    if (!formData.pollingStationNumber.trim()) {
+      newErrors.pollingStationNumber = 'Polling Station Number is required';
+    }
+    if (!formData.totalCastVotes.trim()) {
+      newErrors.totalCastVotes = 'Total Cast Votes is required';
+    }
+    
+    // Check if at least one candidate has votes
+    const hasVotes = Object.values(votes).some(v => v && parseInt(v) > 0);
+    if (!hasVotes) {
+      newErrors.votes = 'At least one candidate must have votes';
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    
+    setErrors({});
     setSubmitting(true);
     await new Promise(r => setTimeout(r, 800));
     setSubmitting(false);
     setSubmitted(true);
     setTimeout(() => setSubmitted(false), 3000);
     setVotes({});
+    setFormData({
+      districtName: '',
+      pollingStationName: '',
+      pollingStationNumber: '',
+      totalCastVotes: ''
+    });
   };
 
   return (
@@ -202,34 +244,110 @@ export default function ObserverPage() {
                 ✓ Results submitted successfully! They are pending verification.
               </div>
             )}
-            <form onSubmit={handleSubmit} className="card p-6 space-y-4">
+            {errors.votes && (
+              <div className="mb-5 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 font-semibold text-sm flex items-center gap-2">
+                ⚠ {errors.votes}
+              </div>
+            )}
+            <form onSubmit={handleSubmit} className="card p-6 space-y-5">
               <div className="mb-2">
                 <h2 className="section-title">Submit Poll Results</h2>
                 <p className="text-sm text-slate-400 mt-0.5">
                   Station: <span className="font-bold text-slate-700">{station?.name ?? 'Unknown'}</span>
                 </p>
               </div>
-              {myCandidates.map(c => {
-                const party = getPartyById(c.partyId);
-                return (
-                  <div key={c.id} className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold"
-                      style={{ background: party?.color }}>{c.initials}</div>
-                    <div className="flex-1">
-                      <p className="font-bold text-slate-900 text-sm">{c.name}</p>
-                      <p className="text-xs font-bold" style={{ color: party?.color }}>{party?.shortName}</p>
-                    </div>
-                    <input
-                      type="number" min="0"
-                      value={votes[c.id] ?? ''}
-                      onChange={e => setVotes(v => ({ ...v, [c.id]: e.target.value }))}
-                      placeholder="Votes"
-                      className="w-28 input-field text-right"
-                    />
-                  </div>
-                );
-              })}
-              <div className="pt-1">
+
+              {/* Mandatory Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">
+                    District/Constituency Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.districtName}
+                    onChange={e => setFormData(f => ({ ...f, districtName: e.target.value }))}
+                    placeholder="Enter district/constituency name"
+                    className={`w-full input-field ${errors.districtName ? 'border-red-300' : ''}`}
+                  />
+                  {errors.districtName && <p className="text-xs text-red-500 mt-1">{errors.districtName}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">
+                    Polling Station Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.pollingStationName}
+                    onChange={e => setFormData(f => ({ ...f, pollingStationName: e.target.value }))}
+                    placeholder="Enter polling station name"
+                    className={`w-full input-field ${errors.pollingStationName ? 'border-red-300' : ''}`}
+                  />
+                  {errors.pollingStationName && <p className="text-xs text-red-500 mt-1">{errors.pollingStationName}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">
+                    Polling Station Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.pollingStationNumber}
+                    onChange={e => setFormData(f => ({ ...f, pollingStationNumber: e.target.value }))}
+                    placeholder="Enter station number"
+                    className={`w-full input-field ${errors.pollingStationNumber ? 'border-red-300' : ''}`}
+                  />
+                  {errors.pollingStationNumber && <p className="text-xs text-red-500 mt-1">{errors.pollingStationNumber}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">
+                    Total Cast Votes <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.totalCastVotes}
+                    onChange={e => setFormData(f => ({ ...f, totalCastVotes: e.target.value }))}
+                    placeholder="Enter total cast votes"
+                    className={`w-full input-field ${errors.totalCastVotes ? 'border-red-300' : ''}`}
+                  />
+                  {errors.totalCastVotes && <p className="text-xs text-red-500 mt-1">{errors.totalCastVotes}</p>}
+                </div>
+              </div>
+
+              {/* Candidate Votes */}
+              <div>
+                <label className="block text-xs font-black text-slate-700 uppercase tracking-widest mb-3">
+                  Candidate Votes <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-3">
+                  {myCandidates.slice(0, 8).map(c => {
+                    const party = getPartyById(c.partyId);
+                    return (
+                      <div key={c.id} className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <div className="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                          style={{ background: party?.color }}>{c.initials}</div>
+                        <div className="flex-1">
+                          <p className="font-bold text-slate-900 text-sm">{c.name}</p>
+                          <p className="text-xs font-bold" style={{ color: party?.color }}>{party?.shortName}</p>
+                        </div>
+                        <input
+                          type="number" min="0"
+                          value={votes[c.id] ?? ''}
+                          onChange={e => setVotes(v => ({ ...v, [c.id]: e.target.value }))}
+                          placeholder="Votes"
+                          className="w-28 input-field text-right"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-slate-400 mt-2">Enter votes for each candidate. At least one candidate must have votes.</p>
+              </div>
+
+              <div className="pt-2">
                 <p className="text-xs text-slate-400 mb-4">By submitting, you confirm these results are accurate and from your assigned polling station.</p>
                 <button type="submit" disabled={submitting}
                   className="w-full py-3.5 rounded-2xl font-black text-sm text-white transition-all disabled:opacity-60 shadow-sm"
