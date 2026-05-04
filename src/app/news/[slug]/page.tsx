@@ -146,20 +146,20 @@ export default function PostDetailPage() {
         </div>
 
         {post.video_url && (
-          <div className="mb-8 rounded-xl overflow-hidden shadow-lg">
+          <div className="mb-8">
             {(post.video_url.includes('youtube.com') || post.video_url.includes('youtu.be')) ? (
-              <iframe
-                width="100%"
-                height="420"
-                src={toYouTubeEmbed(post.video_url)}
-                title="Video"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="rounded-xl"
-              />
+              <div className="rounded-xl overflow-hidden shadow-lg" style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                <iframe
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                  src={toYouTubeEmbed(post.video_url)}
+                  title="Video"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
             ) : (
-              <video controls className="w-full rounded-xl">
+              <video controls className="w-full rounded-xl shadow-lg">
                 <source src={post.video_url} type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
@@ -168,7 +168,7 @@ export default function PostDetailPage() {
         )}
 
         <div
-          className="prose prose-lg max-w-none text-slate-700"
+          className="article-content max-w-none text-slate-700"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
 

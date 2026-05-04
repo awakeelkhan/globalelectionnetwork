@@ -1,0 +1,6 @@
+{
+  "commands": [
+    "cat /etc/nginx/sites-enabled/globalelection",
+    "echo '=== file url test ===' && curl -s -o /dev/null -w '%{http_code} %{redirect_url}' 'http://localhost:3000/uploads/1777878557988-Screenshot_2026-05-04_120858.jpg' && echo ''"
+  ]
+}

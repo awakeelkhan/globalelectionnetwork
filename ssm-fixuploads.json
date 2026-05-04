@@ -1,0 +1,8 @@
+{
+  "commands": [
+    "cp /etc/nginx/sites-enabled/globalelection /etc/nginx/sites-enabled/globalelection.bak",
+    "python3 << 'PYEOF'\nconfig = open('/etc/nginx/sites-enabled/globalelection').read()\nuploads_loc = \"\"\"\n    location /uploads/ {\n        alias /var/www/globalelectionnetwork/public/uploads/;\n        expires 30d;\n        add_header Cache-Control \\\"public\\\";\n        add_header Access-Control-Allow-Origin \\\"*\\\";\n    }\n\n\"\"\"\nmarker = 'server_name globalelectionnetwork.com www.globalelectionnetwork.com; # managed by Certbot'\nif uploads_loc.strip() not in config:\n    config = config.replace(marker, marker + '\\n' + uploads_loc, 1)\n    open('/etc/nginx/sites-enabled/globalelection', 'w').write(config)\n    print('Nginx config updated')\nelse:\n    print('Already has uploads block')\nPYEOF",
+    "nginx -t 2>&1 && nginx -s reload 2>&1 && echo 'Nginx reloaded OK'",
+    "curl -s -o /dev/null -w 'uploads_test HTTP_%{http_code}' 'http://localhost/uploads/1777878557988-Screenshot_2026-05-04_120858.jpg' && echo ''"
+  ]
+}
