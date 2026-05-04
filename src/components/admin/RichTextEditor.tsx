@@ -49,6 +49,7 @@ function Divider() {
 
 export default function RichTextEditor({ value, onChange }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const skipUpdate = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -66,7 +67,7 @@ export default function RichTextEditor({ value, onChange }: Props) {
       Placeholder.configure({ placeholder: 'Write the full post content here…' }),
     ],
     content: value || '',
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor }) => { if (!skipUpdate.current) onChange(editor.getHTML()); },
     editorProps: {
       attributes: { class: 'focus:outline-none' },
     },
@@ -74,7 +75,9 @@ export default function RichTextEditor({ value, onChange }: Props) {
 
   useEffect(() => {
     if (editor && value !== undefined && value !== editor.getHTML()) {
-      editor.commands.setContent(value || '', false);
+      skipUpdate.current = true;
+      editor.commands.setContent(value || '');
+      skipUpdate.current = false;
     }
   }, [value]);
 
