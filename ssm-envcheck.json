@@ -1,0 +1,7 @@
+{
+  "commands": [
+    "echo '=== PM2 env ===' && pm2 env 0 2>&1 | grep -E 'DB_|NEXTAUTH|NODE_ENV' | head -20",
+    "echo '=== .env.local on disk ===' && cat /var/www/globalelectionnetwork/.env.local 2>/dev/null || echo 'NOT FOUND'",
+    "echo '=== .env on disk ===' && cat /var/www/globalelectionnetwork/.env 2>/dev/null | grep -v PASSWORD | grep -v SECRET || echo 'NOT FOUND'"
+  ]
+}

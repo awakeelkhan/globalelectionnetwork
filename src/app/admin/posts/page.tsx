@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Eye, Image, Video, X, Check, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Edit2, Trash2, Eye, Image, Video, X, Check, AlertCircle, Upload, Link2, Grid, Facebook } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -18,7 +18,181 @@ interface Post {
   created_at: string;
 }
 
-const CATEGORIES = ['news', 'blog', 'announcement', 'press'];
+const CATEGORIES = ['Elections', 'Government Meeting', 'Analysis', 'Technology', 'International', 'Press', 'News', 'Announcement'];
+
+type ImageTab = 'url' | 'upload' | 'gallery' | 'facebook';
+
+function toYouTubeEmbed(url: string): string {
+  if (!url) return url;
+  if (url.includes('/embed/')) return url;
+  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  const watchMatch = url.match(/[?&]v=([^&]+)/);
+  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  return url;
+}
+
+function ImagePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [tab, setTab] = useState<ImageTab>('url');
+  const [gallery, setGallery] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState('');
+  const [urlInput, setUrlInput] = useState(value);
+  const [fbInput, setFbInput] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (tab === 'gallery') {
+      fetch('/api/uploads').then(r => r.json()).then(d => setGallery(d.images || [])).catch(() => {});
+    }
+  }, [tab]);
+
+  useEffect(() => { setUrlInput(value); }, [value]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadErr('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.url) {
+        onChange(data.url);
+        setTab('url');
+      } else {
+        setUploadErr(data.error || 'Upload failed');
+      }
+    } catch {
+      setUploadErr('Upload failed — please try again');
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const TABS: { id: ImageTab; label: string; icon: React.ReactNode }[] = [
+    { id: 'url', label: 'URL', icon: <Link2 size={13}/> },
+    { id: 'upload', label: 'Upload', icon: <Upload size={13}/> },
+    { id: 'gallery', label: 'Gallery', icon: <Grid size={13}/> },
+    { id: 'facebook', label: 'Facebook', icon: <Facebook size={13}/> },
+  ];
+
+  return (
+    <div className="border border-slate-200 rounded-xl overflow-hidden">
+      {/* Tab bar */}
+      <div className="flex border-b border-slate-200 bg-slate-50">
+        {TABS.map(t => (
+          <button key={t.id} type="button" onClick={() => setTab(t.id)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-px ${
+              tab === t.id ? 'border-green-600 text-green-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}>
+            {t.icon}{t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="p-4">
+        {tab === 'url' && (
+          <div className="flex gap-2">
+            <input type="text" value={urlInput}
+              onChange={e => { setUrlInput(e.target.value); onChange(e.target.value); }}
+              placeholder="https://example.com/image.jpg"
+              className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"/>
+            {urlInput && <button type="button" onClick={() => { setUrlInput(''); onChange(''); }} className="text-slate-400 hover:text-red-500 px-2"><X size={14}/></button>}
+          </div>
+        )}
+
+        {tab === 'upload' && (
+          <div>
+            <div
+              onClick={() => fileRef.current?.click()}
+              className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-green-400 hover:bg-green-50 transition-all">
+              {uploading ? (
+                <div className="flex flex-col items-center gap-2 text-green-600">
+                  <div className="w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin"/>
+                  <span className="text-sm font-semibold">Uploading…</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-slate-400">
+                  <Upload size={28}/>
+                  <p className="text-sm font-semibold text-slate-600">Click to browse or drag &amp; drop</p>
+                  <p className="text-xs">JPG, PNG, GIF, WebP, SVG · max 10 MB</p>
+                </div>
+              )}
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange}/>
+            {uploadErr && <p className="text-xs text-red-600 mt-2 font-semibold">⚠ {uploadErr}</p>}
+          </div>
+        )}
+
+        {tab === 'gallery' && (
+          <div>
+            {gallery.length === 0 ? (
+              <div className="text-center py-8 text-slate-400">
+                <Grid size={28} className="mx-auto mb-2 opacity-30"/>
+                <p className="text-sm">No uploaded images yet</p>
+                <p className="text-xs mt-1">Upload images first to see them here</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2 max-h-52 overflow-y-auto">
+                {gallery.map(url => (
+                  <button key={url} type="button" onClick={() => { onChange(url); setTab('url'); }}
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:opacity-90 ${
+                      value === url ? 'border-green-500 ring-2 ring-green-300' : 'border-transparent hover:border-slate-300'
+                    }`}>
+                    <img src={url} alt="" className="w-full h-full object-cover"/>
+                    {value === url && (
+                      <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+                        <Check size={16} className="text-green-700"/>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'facebook' && (
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input type="text" value={fbInput}
+                onChange={e => setFbInput(e.target.value)}
+                placeholder="Paste Facebook image URL…"
+                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+              <button type="button"
+                onClick={() => { if (fbInput) { onChange(fbInput); setTab('url'); } }}
+                className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors">
+                Use
+              </button>
+            </div>
+            <p className="text-xs text-slate-400">⚠ The Facebook image must be set to <strong>Public</strong> — private/friends-only images will not display on your site.</p>
+            <p className="text-xs text-slate-400">Tip: right-click the Facebook image → <em>Copy image address</em>, then paste above.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Preview */}
+      {value && (
+        <div className="border-t border-slate-100 px-4 pb-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Preview</p>
+          <div className="relative h-32 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+            <img src={value} alt="Preview" className="w-full h-full object-cover"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}/>
+            <button type="button" onClick={() => { onChange(''); setUrlInput(''); setFbInput(''); }}
+              className="absolute top-2 right-2 bg-white/90 border border-slate-200 rounded-full p-1 text-slate-500 hover:text-red-600">
+              <X size={12}/>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminPostsPage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -204,10 +378,14 @@ export default function AdminPostsPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1.5">Category</label>
-                    <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400">
-                      {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-                    </select>
+                    <input type="text" value={formData.category}
+                      onChange={e => setFormData({ ...formData, category: e.target.value })}
+                      list="category-list"
+                      placeholder="e.g. Elections"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                    <datalist id="category-list">
+                      {CATEGORIES.map(c => <option key={c} value={c}/>)}
+                    </datalist>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1.5">Status</label>
@@ -237,34 +415,33 @@ export default function AdminPostsPage() {
                 {/* Featured Image */}
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">
-                    <Image className="inline w-3.5 h-3.5 mr-1 text-slate-400"/>Featured Image URL
+                    <Image className="inline w-3.5 h-3.5 mr-1 text-slate-400"/>Featured Image
                   </label>
-                  <input type="text" value={formData.featured_image}
-                    onChange={(e) => setFormData({ ...formData, featured_image: e.target.value })}
-                    placeholder="https://example.com/image.jpg or /uploads/image.jpg"
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
-                  {formData.featured_image && (
-                    <div className="mt-2 relative w-full h-36 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-                      <img src={formData.featured_image} alt="Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}/>
-                      <button type="button" onClick={() => setFormData({ ...formData, featured_image: '' })}
-                        className="absolute top-2 right-2 bg-white/90 border border-slate-200 rounded-full p-1 text-slate-500 hover:text-red-600">
-                        <X size={12}/>
-                      </button>
-                    </div>
-                  )}
+                  <ImagePicker
+                    value={formData.featured_image}
+                    onChange={v => setFormData({ ...formData, featured_image: v })}
+                  />
                 </div>
 
                 {/* Video URL */}
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">
-                    <Video className="inline w-3.5 h-3.5 mr-1 text-slate-400"/>Video URL <span className="font-normal text-slate-400">(YouTube, Vimeo, etc.)</span>
+                    <Video className="inline w-3.5 h-3.5 mr-1 text-slate-400"/>Video URL <span className="font-normal text-slate-400">(YouTube watch link or youtu.be short link)</span>
                   </label>
                   <input type="text" value={formData.video_url}
                     onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                    placeholder="https://youtube.com/watch?v=..."
+                    placeholder="https://youtube.com/watch?v=... or https://youtu.be/..."
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                  {formData.video_url && (() => {
+                    const embedUrl = toYouTubeEmbed(formData.video_url);
+                    return (
+                      <div className="mt-2 rounded-xl overflow-hidden border border-slate-200 bg-black">
+                        <iframe width="100%" height="220" src={embedUrl} title="Video preview"
+                          frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen className="rounded-xl"/>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Content */}

@@ -1,0 +1,6 @@
+{
+  "commands": [
+    "echo '=== Through Nginx port 80 ===' && curl -s -X POST http://localhost/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"admin@gen.pk\",\"password\":\"Khan@#123\",\"role\":\"admin\"}' && echo ''",
+    "echo '=== Nginx config ===' && nginx -T 2>/dev/null | grep -A5 'location.*api' | head -20"
+  ]
+}

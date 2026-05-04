@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne } from '@/lib/db';
 
+function toYouTubeEmbed(url: string): string {
+  if (!url) return url;
+  if (url.includes('/embed/')) return url;
+  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  const watchMatch = url.match(/[?&]v=([^&]+)/);
+  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  return url;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -51,11 +61,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Title, slug, and content are required' }, { status: 400 });
     }
 
+    const embedUrl = video_url ? toYouTubeEmbed(video_url) : null;
+
     const post = await queryOne<any>(`
       INSERT INTO posts (title, slug, content, excerpt, featured_image, video_url, author, category, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
-    `, [title, slug, content, excerpt || null, featured_image || null, video_url || null, author || null, category || 'news', status || 'published']);
+    `, [title, slug, content, excerpt || null, featured_image || null, embedUrl, author || null, category || 'news', status || 'published']);
 
     return NextResponse.json({ post });
   } catch (e: unknown) {

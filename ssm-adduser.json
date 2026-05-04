@@ -1,0 +1,10 @@
+{
+  "commands": [
+    "echo '=== Create user ===' && useradd -m -s /bin/bash yasin 2>/dev/null || echo 'user exists'",
+    "echo '=== SSH key ===' && mkdir -p /home/yasin/.ssh && chmod 700 /home/yasin/.ssh && ssh-keygen -t ed25519 -f /home/yasin/.ssh/yasin_key -N '' -C 'yasin@globalelectionnetwork' && cp /home/yasin/.ssh/yasin_key.pub /home/yasin/.ssh/authorized_keys && chmod 600 /home/yasin/.ssh/authorized_keys && chown -R yasin:yasin /home/yasin/.ssh",
+    "echo '=== Deploy script ===' && cat > /usr/local/bin/gen-deploy << 'SCRIPT'\n#!/bin/bash\nset -e\ncd /var/www/globalelectionnetwork\ngit pull origin master\nexport NODE_ENV=production DB_HOST=localhost DB_PORT=5432 DB_USER=pakload DB_PASSWORD='Khan123@#' DB_NAME=elections NEXTAUTH_SECRET=GEN_election_secret_2026 NEXTAUTH_URL=https://globalelectionnetwork.com\nNODE_OPTIONS='--max-old-space-size=1536' npm run build\npm2 restart globalelection || pm2 start npm --name globalelection -- start -- -p 3000\npm2 save\necho 'Deploy complete'\nSCRIPT\nchmod +x /usr/local/bin/gen-deploy",
+    "echo '=== Sudoers ===' && echo 'yasin ALL=(ALL) NOPASSWD: /usr/local/bin/gen-deploy' > /etc/sudoers.d/yasin && chmod 440 /etc/sudoers.d/yasin && visudo -cf /etc/sudoers.d/yasin && echo 'sudoers OK'",
+    "echo '=== Get server IP ===' && curl -s http://169.254.169.254/latest/meta-data/public-ipv4",
+    "echo '=== Private key ===' && cat /home/yasin/.ssh/yasin_key"
+  ]
+}

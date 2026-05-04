@@ -22,6 +22,16 @@ interface Post {
   created_at: string;
 }
 
+function toYouTubeEmbed(url: string): string {
+  if (!url) return url;
+  if (url.includes('/embed/')) return url;
+  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  const watchMatch = url.match(/[?&]v=([^&]+)/);
+  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  return url;
+}
+
 export default function PostDetailPage() {
   const params = useParams();
   const [post, setPost] = useState<Post | null>(null);
@@ -137,11 +147,11 @@ export default function PostDetailPage() {
 
         {post.video_url && (
           <div className="mb-8 rounded-xl overflow-hidden shadow-lg">
-            {post.video_url.includes('youtube.com') || post.video_url.includes('youtu.be') ? (
+            {(post.video_url.includes('youtube.com') || post.video_url.includes('youtu.be')) ? (
               <iframe
                 width="100%"
-                height="400"
-                src={post.video_url.replace('watch?v=', 'embed/')}
+                height="420"
+                src={toYouTubeEmbed(post.video_url)}
                 title="Video"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
