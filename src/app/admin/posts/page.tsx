@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { Plus, Edit2, Trash2, Eye, Image, Video, X, Check, AlertCircle, Upload, Link2, Grid, Facebook } from 'lucide-react';
+
+const RichTextEditor = dynamic(() => import('@/components/admin/RichTextEditor'), { ssr: false, loading: () => <div className="h-64 border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-sm">Loading editor…</div> });
 
 interface Post {
   id: string;
@@ -348,14 +351,17 @@ export default function AdminPostsPage() {
 
         {/* Form Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-40 p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-6">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl z-10">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col" style={{ maxHeight: '92vh' }}>
+              {/* Sticky header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white rounded-t-2xl shrink-0">
                 <h2 className="font-black text-slate-900 text-lg">{editingPost ? 'Edit Post' : 'Create New Post'}</h2>
-                <button onClick={closeForm} className="text-slate-400 hover:text-slate-700 transition-colors"><X size={20}/></button>
+                <button type="button" onClick={closeForm} className="text-slate-400 hover:text-slate-700 transition-colors"><X size={20}/></button>
               </div>
 
-              <form onSubmit={handleSave} className="px-6 py-5 space-y-5">
+              {/* Scrollable body */}
+              <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
                 {/* Title + Slug */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
@@ -444,23 +450,26 @@ export default function AdminPostsPage() {
                   })()}
                 </div>
 
-                {/* Content */}
+
+                {/* Content editor */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Content * <span className="font-normal text-slate-400">(supports plain text or HTML)</span></label>
-                  <textarea required value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    rows={12} placeholder="Write the full post content here…"
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-400 resize-y font-mono"/>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Content *</label>
+                  <RichTextEditor
+                    value={formData.content}
+                    onChange={v => setFormData(f => ({ ...f, content: v }))}
+                  />
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-3 justify-end pt-2 border-t border-slate-100">
+              </div>{/* end scrollable */}
+
+              {/* Sticky footer with action buttons */}
+              <div className="flex gap-3 justify-end px-6 py-4 border-t border-slate-100 bg-white rounded-b-2xl shrink-0">
                   <button type="button" onClick={closeForm}
                     className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
                     Cancel
                   </button>
                   <button type="submit"
-                    className="px-6 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors flex items-center gap-2">
+                    className="px-6 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 transition-colors flex items-center gap-2 shadow-sm">
                     <Check size={14}/> {editingPost ? 'Update Post' : 'Publish Post'}
                   </button>
                 </div>
